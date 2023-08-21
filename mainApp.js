@@ -5,7 +5,7 @@ import { dirname } from "path";
 import multer from "multer";
 import xml2js from 'xml2js';
 import path from "path"
-import uploadRote from './routes/uploadXmlRouter.js';
+import uploadXmlRouter from './routes/uploadXmlRouter.js';
 
 const patth = 'uploads/';
 const __filename = fileURLToPath(import.meta.url);
@@ -93,9 +93,7 @@ function verificarTamano() {
 // });
 
 
-app.get('/', (req, res) => {
-    res.sendFile(__dirname+'/static/templates/index.html');
-});
+app.use('/home',uploadXmlRouter);
 
 app.post('/files', upload.single('avatar'), (req, res) => {
     res.send('Todo Bien');

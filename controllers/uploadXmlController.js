@@ -6,14 +6,17 @@ import express from 'express';
 
 const __filename=fileURLToPath(import.meta.url);
 const __dirname=path.dirname(__filename);
-const app = express() ; 
+const app = express();
 
-
-export function uploadController(){
- app.get('/', (res,req ) =>{
-    res.serdFile(__dirname)
- }); 
+function uploadController(req, res) {
+   res.sendFile('C:/Users/ctorrese/Desktop/MigradorFinal/src/static/templates/index.html');
 }
+
+// export function uploadController(req, res){
+//  app.get('/framework/home', (res,req ) =>{
+//    //res.sendFile(__dirname+'/static/templates/index.html');
+//  }); 
+// }
 
 // const __filename = fileURLToPath(import.meta.url);
 // const __dirname = dirname(__filename);
@@ -38,3 +41,6 @@ export function uploadController(){
 //     res.send('Archivo subido correctamente !');
 // });
 
+export{
+   uploadController
+};
