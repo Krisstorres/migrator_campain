@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Elige tu archivo xml</h1>
+    <form action="/getTipo1" method="get" enctype="multipart/form-data">
+        <!-- Cambia el tipo de entrada de 'var' a 'text' -->
+        <input type="text" name="respuesta" id="respuesta">
+        <input type="submit" value="ver">
+    </form>
+    
+    <select id="respuestaSelect"></select>
+    
+    <script>
+        $(document).ready(function() {
+            $('form').submit(function(e) {
+                e.preventDefault();
+                var respuestaValue = $('#respuesta').val();
+                $.get('/getTipo1?respuesta=' + respuestaValue, function(data) {
+                    var selectElement = $('#respuestaSelect');
+                    selectElement.empty(); // Limpia las opciones existentes
+                    $.each(data.msg, function(key, value) {
+                        var option = $('<option></option>').attr('value', value.cadena).text(value.cadena);
+                        selectElement.append(option);
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,31 +1,44 @@
+// import section 
 import express from "express";
+import bodyParser from 'body-parser';
+//manejo de directorios
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import multer from "multer";
-import xml2js from 'xml2js';
-import path from "path"
+import path from 'path'; 
+//routing
 import uploadXmlRouter from './routes/uploadXmlRouter.js';
+import fileRouter from './routes/fileRoutes.js';
+import getxmlInfo from './routes/getXmlInfoRoute.js';
+import getXmls from './routes/getXmlsRoute.js';
+import getTypes from './routes/getTypesRoute.js';
+import dotenv from 'dotenv';
+// import section 
 
+
+// Variables 
 const patth = 'uploads/';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 var cantidad = 0;
 var listDir = [];
 var infoObj = [];
-
 const app = express();
-
 const storage = multer.diskStorage({
     destination: patth,
     filename: function (req, file, callBack) {
         callBack("", Date.now().toString().replace(' ', '') + file.originalname.replace(' ', '').replace(' ', ''));
     }
 });
-
 const upload = multer({
     storage: storage
 });
+// Variables 
+
+
+
+
 
 function verificarTamano() {
     fs.readdir(patth, (err, files) => {
@@ -39,64 +52,24 @@ function verificarTamano() {
         return cantidad;
     });
 }
+//routing section
+app.use(bodyParser.urlencoded({ extended:false }));
 
-// Resto de tu código...
+app.use(express.static(path.join(__dirname, 'static')));
+app.use(bodyParser.json());
+app.use('/',uploadXmlRouter);
 
-// app.get('/xml', async (req, res) => {
-//     try {
-//         // Resto de tu código...
+app.use('/files',fileRouter);
 
-//         res.render('xmlViews', { etiquetasType1 }); // Renderizamos la vista 'xmlViews.ejs' con la información
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).send('Error al leer el archivo XML.');
-//     }
-// });
+app.use('/filtrar',getxmlInfo);
 
-// Resto de tu código...
+app.use('/getXmls',getXmls);
 
--
+app.use('/types',getTypes)
 
-// app.get('/xml', async (req, res) => {
-//     try {
-//         const filePath = path.join(__dirname, './uploads/1692192152575dialer_config(3)(1).xml');
-//         fs.readFile(filePath, 'utf-8', (err, data) => {
-//             if (!err) {
-//                 console.log(data);
-//                 xml2js.parseString(data, (parseError, result) => {
-//                     if (!parseError) {
-//                         const dialerObjects = Array.isArray(result.DIALERCONFIG2.DIALEROBJECT) ? result.DIALERCONFIG2.DIALEROBJECT : [result.DIALERCONFIG2.DIALEROBJECT];
+//routing section
 
-//                         const etiquetasType1 = dialerObjects.filter(obj => obj.$ && obj.$['type'] && obj.$['type'][0] === '1');
-//                         //Etiquetas sin filtrado 
-//                         const contenidoEtiquetas = etiquetasType1.map(etiqueta => etiqueta.PROPERTIES[0]);
-//                         //extraxendo solo los valores de estas etiquetas
-//                         res.json(contenidoEtiquetas);
-
-//                         console.log(contenidoEtiquetas);
-
-//                     } else {
-//                         console.log('Error parse error = ' + parseError);
-//                         console.error('Error parse error = ' + parseError);
-//                     }
-//                 });
-//             } else {
-//                 console.log('Error de lectura = ' + err);
-//                 console.error('Error de lectura = ' + err);
-//             }
-//         });
-
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).send('Error al leer el archivo XML.');
-//     }
-// });
-
-
-app.use('/home',uploadXmlRouter);
-
-app.post('/files', upload.single('avatar'), (req, res) => {
-    res.send('Todo Bien');
-});
+//running section
 
 app.listen(8000, () => console.log("Server started http://localhost:8000"));
+//running section

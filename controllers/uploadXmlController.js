@@ -9,7 +9,18 @@ const __dirname=path.dirname(__filename);
 const app = express();
 
 function uploadController(req, res) {
-   res.sendFile('C:/Users/ctorrese/Desktop/MigradorFinal/src/static/templates/index.html');
+   try{
+      console.log('Entrando en template principal')
+      res.sendFile(path.join(__dirname,'..','static/templates/index.html'));
+   }
+   catch(e){
+      console.log('Error Upload XML Controller ='.concat(e.toString()))
+   };
+   
+   //-----------------------------------------------------------Cambio de ruta ---------------------------------------------------
+ 
+
+  
 }
 
 // export function uploadController(req, res){
