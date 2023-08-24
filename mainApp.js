@@ -13,6 +13,7 @@ import fileRouter from './routes/fileRoutes.js';
 import getxmlInfo from './routes/getXmlInfoRoute.js';
 import getXmls from './routes/getXmlsRoute.js';
 import getTypes from './routes/getTypesRoute.js';
+import createToken from './routes/createTokenRoute.js';
 import dotenv from 'dotenv';
 // import section 
 
@@ -65,7 +66,9 @@ app.use('/filtrar',getxmlInfo);
 
 app.use('/getXmls',getXmls);
 
-app.use('/types',getTypes)
+app.use('/types',getTypes);
+
+app.use('/newCampain',createToken);
 
 //routing section
 
