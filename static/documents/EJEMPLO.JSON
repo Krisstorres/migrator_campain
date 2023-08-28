@@ -1,0 +1,34 @@
+{
+    "id": "a2456f36-22b2-438c-835a-e4bd9345d977",
+    "name": "PRUEBA_NUMERO_TRES",
+    "dateCreated": "2023-08-24T19:50:23.953Z",
+    "version": 1,
+    "division": {
+      "id": "4f6793c1-ac28-44ae-b777-70a4adb6496d",
+      "name": "Home",
+      "selfUri": "/api/v2/authorization/divisions/4f6793c1-ac28-44ae-b777-70a4adb6496d"
+    },
+    "columnNames": [
+      "Prueba",
+      "valor",
+      "CallRecordLastAttempt-Prueba",
+      "CallRecordLastResult-Prueba",
+      "CallRecordLastAgentWrapup-Prueba",
+      "SmsLastAttempt-Prueba",
+      "SmsLastResult-Prueba",
+      "Callable-Prueba",
+      "ContactableByVoice-Prueba",
+      "ContactableBySms-Prueba",
+      "AutomaticTimeZone-Prueba"
+    ],
+    "phoneColumns": [
+      {
+        "columnName": "valor",
+        "type": "Móvil"
+      }
+    ],
+    "previewModeColumnName": "",
+    "automaticTimeZoneMapping": false,
+    "trimWhitespace": true,
+    "selfUri": "/api/v2/outbound/contactlists/a2456f36-22b2-438c-835a-e4bd9345d977"
+  }

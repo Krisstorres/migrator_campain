@@ -1,204 +1,240 @@
 import express from 'express';
 import axios from 'axios';
-import csvParser  from 'csv-parser';
+import platformClient from 'purecloud-platform-client-v2'; 
+//import { queryApp } from '../utils/queryJsonParser.js';
+import { createToken } from '../utils/getToken.js';
+import csvParser from 'csv-parser';
 import fs from 'fs';
-import path from 'path'; 
-import {fileURLToPath} from 'url';
-import { JSONPath } from "jsonpath-plus"; // Note the capitalized JSONPath
-import csvWriter  from 'csv-writer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { JSONPath } from "jsonpath-plus";
+import {textToJSON} from '../utils/saveInfo.js';
 
 
-const csvvwriter =csvWriter.createObjectCsvWriter;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const jsonFile = path.join(__dirname, '../static/documents/archivo.json');
+const outPutData = path.join(__dirname, '../static/documents/output.csv');  
 const app=express();
-const __filename=fileURLToPath(import.meta.url);
-const __dirname=path.dirname(__filename);
-const dirpath= path.join(__dirname,'..','/static/uploads')
-const jsonFile='controllers/archivo.json'
-var content={};
 const axxios=axios.default;
+const client = platformClient.ApiClient.instance;
+var daira =[];
 
 app.use(express.json());
 
 
-function queryApp() {
-    try {
-      const data = [];
-      const csvFilePath = 'controllers/tablas_GT.csv';
-      const jsonFilePath = jsonFile;
-      const jsonData = fs.readFileSync(jsonFilePath, 'utf8');
-      const jsonObject = JSON.parse(jsonData);
-      const query = '$..DIALERCONFIG2.DIALEROBJECT..[?(@.type=="1")].name';
-      const queryResult = JSONPath({ json: jsonObject, path: query });
+
+// async function queryApp() {
+//   try {
+//       const csvFilePath = path.join(__dirname, '../static/documents/tablas_GT.csv');
+//       const jsonData = fs.readFileSync(jsonFile, 'utf8');
+//       const jsonObject = JSON.parse(jsonData);
+//       const query = '$..DIALERCONFIG2.DIALEROBJECT..PROPERTIES.calllist._attributes.display_name';
+//       const calllistDisplayNames = JSONPath({ json: jsonObject, path: query });
+
+//       const data = await new Promise((resolve, reject) => {
+//           const dataArray = [];
+//           fs.createReadStream(csvFilePath)
+//               .pipe(csvParser())
+//               .on('data', (row) => {
+//                   dataArray.push(row);
+//               })
+//               .on('end', () => {
+//                   resolve(dataArray);
+//               })
+//               .on('error', (error) => {
+//                   reject(error);
+//               });
+//       });
+
+//       const excludedTables = new Set();
+//       data.forEach(row => {
+//           if (row.COLUMN_NAME.includes('I3_') || row.TABLE_NAME.includes('$')) {
+//               excludedTables.add(row.TABLE_NAME);
+//           }
+//       });
+
+//       const filteredData = data.filter(row => !excludedTables.has(row.TABLE_NAME));
+
+//       const uniqueColumnNames = new Set();
+//       const nonDuplicateRows = [];
       
-      fs.createReadStream(csvFilePath)
-        .pipe(csvParser())
-        .on('data', (row) => {
-          data.push(row);
-        })
-        .on('end', () => {
-          const uniqueRows = new Map();
-          queryResult.forEach(col => {
-            const matchingRows = data.filter(row => row.TABLE_NAME === col);
-            matchingRows.forEach(match => {
-              uniqueRows.set(match.TABLE_NAME, match);
-            });
-          });
-          
-          const filteredData = Array.from(uniqueRows.values());
-  
-          console.log('filtered data:', filteredData);
-          let i = 0;
-          filteredData.forEach(col => {
-            console.log('TABLE_NAME = ' + JSON.stringify(col.TABLE_NAME));
-            console.log('COLUMN_NAME = ' + JSON.stringify(col.COLUMN_NAME));
-            console.log('DATA_TYPE = ' + JSON.stringify(col.DATA_TYPE));
-            console.log('DATA_LENGTH = ' + JSON.stringify(col.DATA_LENGTH));
-            console.log('Cantidad de registros = ' + i);
-            i += 1;
-          });
-  
-          console.log('Cantidad de resultados obtenidos = ' + filteredData.length);
-          return data;
-        });
-    } catch (e) {
-      console.log('Error typesControler = ' + e.toString());
-    }
+//       filteredData.forEach(row => {
+//           if (!uniqueColumnNames.has(row.COLUMN_NAME)) {
+//               uniqueColumnNames.add(row.COLUMN_NAME);
+//               nonDuplicateRows.push(row);
+//           }
+//       });
+
+//       console.log('Datos sin duplicados: ', nonDuplicateRows);
+
+//       return nonDuplicateRows;
+//   } catch (error) {
+//       console.log('Error typesControler = ' + error.toString());
+//       throw error;
+//   }
+// }
+async function queryApp(token) {
+  try {
+      const csvFilePath = path.join(__dirname, '../static/documents/tablas_GT.csv');
+      const jsonData = fs.readFileSync(jsonFile, 'utf8');
+      const jsonObject = JSON.parse(jsonData);
+      const query = '$..DIALERCONFIG2.DIALEROBJECT..PROPERTIES.calllist._attributes.display_name';
+      const calllistDisplayNames = JSONPath({ json: jsonObject, path: query });
+
+      const data = await new Promise((resolve, reject) => {
+          const dataArray = [];
+          fs.createReadStream(csvFilePath)
+              .pipe(csvParser())
+              .on('data', (row) => {
+                  dataArray.push(row);
+              })
+              .on('end', () => {
+                  resolve(dataArray);
+              })
+              .on('error', (error) => {
+                  reject(error);
+              });
+      });
+
+      const excludedTables = new Set();
+      data.forEach(row => {
+          if (row.COLUMN_NAME.includes('I3_') || row.TABLE_NAME.includes('$')) {
+              excludedTables.add(row.TABLE_NAME);
+          }
+      });
+
+      const filteredData = data.filter(row => !excludedTables.has(row.TABLE_NAME));
+
+      const uniqueTableNames = new Set();
+      const nonDuplicateRows = [];
+    
+      filteredData.forEach(row => {
+          if (!uniqueTableNames.has(row.TABLE_NAME)) {
+              uniqueTableNames.add(row.TABLE_NAME);
+              nonDuplicateRows.push(row);
+          }
+      });
+//-------------------------REALIZANDO QUERY A MURECLOUD
+
+     console.log('Datos sin duplicados: ', nonDuplicateRows)
+     nonDuplicateRows.forEach(col =>{
+      //console.log(JSON.stringify(col.TABLE_NAME));
+      //console.log(JSON.stringify(col.COLUMN_NAME));
+      //console.log(JSON.stringify(col.DATA_TYPE));
+      //console.log(JSON.stringify(col.DATA_LENGTH));
+      client.setEnvironment(platformClient.PureCloudRegionHosts.us_east_1);
+      client.setAccessToken(token);
+      let apiInstance = new platformClient.OutboundApi();
+      let body ={
+        "id": "a2456f36-22b2-438c-835a-e4bd9345d977",
+        "name": JSON.stringify(col.TABLE_NAME),
+        "dateCreated": "2023-08-24T19:50:23.953Z",
+        "version": 1,
+        "division": {
+          "id": "700acb56-0791-4af6-87b4-0d396401c646",
+          "name": "Guatemala",
+          "homeDivision": true,
+          "selfUri": "/api/v2/authorization/divisions/700acb56-0791-4af6-87b4-0d396401c646"
+        },
+        "columnNames": [
+          "valor",
+          JSON.stringify(col.COLUMN_NAME)
+        ],
+        "phoneColumns": [
+          {
+            "columnName": "valor",
+            "type": "Móvil"
+          }
+        ],
+        "previewModeColumnName": "",
+        "automaticTimeZoneMapping": false,
+        "trimWhitespace": true,
+        "selfUri": "/api/v2/outbound/contactlists/a2456f36-22b2-438c-835a-e4bd9345d977"
+      }
+      apiInstance.postOutboundContactlists(body).then((data) => {
+          console.log(`postOutboundContactlists success! data: ${JSON.stringify(data, null, 2)}`);
+      }).catch((err) => {
+          console.log("There was a failure calling postOutboundContactlists");
+          console.error(err);
+      });
+     });
+
+      return nonDuplicateRows;
+  } catch (error) {
+      console.log('Error typesControler = ' + error.toString());
+      throw error;
   }
-  
-  
+}
 
 
-async function createToken(clientId, clientSecret){
 
-    const encodedData = Buffer.from(clientId + ':' + clientSecret).toString('base64');
-    try{
-    const { data } = await axios.post('https://login.mypurecloud.com/oauth/token', "grant_type=client_credentials",{
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': 'Basic ' + encodedData
-        }
-    
-    }); 
-    console.log('Funcionó !')
-    console.log('Token = '+data.access_token.toString())
 
-    return data.access_token.toString();
-    }catch(e){
-        console.log('Error de token '+e)
-    }
+async function newContactList(token){  
+  client.setEnvironment(platformClient.PureCloudRegionHosts.us_east_1);
+  client.setAccessToken(token);
+  let apiInstance = new platformClient.OutboundApi();
+  let body ={
+    "id": "a2456f36-22b2-438c-835a-e4bd9345d977",
+    "name": "PRUEBA_NUMERO_CINCO",
+    "dateCreated": "2023-08-24T19:50:23.953Z",
+    "version": 1,
+    "division": {
+      "id": "4f6793c1-ac28-44ae-b777-70a4adb6496d",
+      "name": "Home",
+      "selfUri": "/api/v2/authorization/divisions/4f6793c1-ac28-44ae-b777-70a4adb6496d"
+    },
+    "columnNames": [
+      "Prueba",
+      "valor",
+      "CallRecordLastAttempt-Prueba",
+      "CallRecordLastResult-Prueba",
+      "CallRecordLastAgentWrapup-Prueba",
+      "SmsLastAttempt-Prueba",
+      "SmsLastResult-Prueba",
+      "Callable-Prueba",
+      "ContactableByVoice-Prueba",
+      "ContactableBySms-Prueba",
+      "AutomaticTimeZone-Prueba"
+    ],
+    "phoneColumns": [
+      {
+        "columnName": "valor",
+        "type": "Móvil"
+      }
+    ],
+    "previewModeColumnName": "",
+    "automaticTimeZoneMapping": false,
+    "trimWhitespace": true,
+    "selfUri": "/api/v2/outbound/contactlists/a2456f36-22b2-438c-835a-e4bd9345d977"
+  }
+  apiInstance.postOutboundContactlists(body).then((data) => {
+      console.log(`postOutboundContactlists success! data: ${JSON.stringify(data, null, 2)}`);
+  }).catch((err) => {
+      console.log("There was a failure calling postOutboundContactlists");
+      console.error(err);
+  });
 };
 
-// async function crearCampaña(req,res ) {
-//     console.log('Creando campañas');
-//     let response     = {"msg":"Pro9ceso iniciado"};
-//     let clientKey    = "97d7a7e8-786a-4491-9830-31032a2d0e19";
-//     let clientSecret = "4h0lHZ8D0ZMpEKWt-UMJ-vtMPZkS0DbRP5XVRJgle1g";
-//     const tokenObj   = await Token.createToken(clientKey,clientSecret);
-//     let data         = {
-//         "name": "ABC_Prueba_DOS",
-//         "division": {
-//             "id": "4f6793c1-ac28-44ae-b777-70a4adb6496d",
-//             "name": "Home",
-//             "homeDivision": true,
-//             "selfUri": "/api/v2/authorization/divisions/4f6793c1-ac28-44ae-b777-70a4adb6496d"
-//         },
-//         "emailColumns": [],
-//         "phoneColumns": [
-//             {
-//                 "columnName": "valor",
-//                 "type": "Móvil"
-//             }
-//         ],
-//         "columnNames": [
-//             "inin-outbound-id",
-//             "Prueba",
-//             "valor",
-//             "ContactCallable",
-//             "ContactableByVoice",
-//             "ContactableBySms",
-//             "ContactableByEmail",
-//             "ZipCodeAutomaticTimeZone",
-//             "CallRecordLastAttempt-Prueba",
-//             "CallRecordLastResult-Prueba",
-//             "CallRecordLastAgentWrapup-Prueba",
-//             "SmsLastAttempt-Prueba",
-//             "SmsLastResult-Prueba",
-//             "Callable-Prueba",
-//             "ContactableByVoice-Prueba",
-//             "ContactableBySms-Prueba",
-//             "AutomaticTimeZone-Prueba"
-//         ],
-//         "previewModeColumnName": "",
-//         "previewModeAcceptedValues": [],
-//         "attemptLimits": null,
-//         "automaticTimeZoneMapping": false,
-//         "zipCodeColumnName": null
-//     };
-//     let options      = {
-//         method:'POST',
-//         url:"https://api.mypurecloud.com/api/v2/outbound/campaigns",
-//         data:data,
-//         headers:{
-//             'Authorization': tokenObj.token_type+' '+tokenObj.access_token,
-//             'Content-Type' : 'application/json'
-//         },
-//         raxConfig:{
-//             retry:3,
-//             noResponseRetries:2,
-//             retrDelay:5000,
-//             httpMethodsToRetry:['GET','HEAD','OPTIONS','DELETE','PUT','POST'],
-//             statusCodesToRetry:[
-//                 [429,429],
-//                 [504,504],
 
-//             ],
-//             backoffType:'static',
-//             onRetryAmpttempt:err =>{
-//                 const cfgr=rax.getConfig(err);
-//                 log.error(cfg,`${url} Retry error: ${err.response.status}`);
 
-//             }
-//         }
-//     };
-//     try{
-//         let result=await axxios(options).catch(function (error){
-//             console.log('Error al crear campaña :'+error.response.status+" - "+error.response.statusText);
-//             response={"msg":"proceso fallido",resultado: error.response.status};        
-//         });
-//         if(result != undefined){
-//             if(result.data != undefined){
-//                 response={"msg":"proceso realizado", resultado:result.data};
-//                 console.log('Data: '+JSON.stringify(result.data));     
-//                 res.status(200).send('realizado con exito ')       
-//             }else{
-//                 console.log('No data ');    
-//                 res.status(500).send('error')
-//             }
-            
-    
-//         }else{
-//             console.log('No result: ')
-//         }res.status(200).json(response)
-        
-//     }catch(e){
-//         console.log('Error al subir el archivo = '+e)
-//         res.status(500).send('error ')
-//     }
-    
-// };
 async function crearCampaña(req,res ) {
+  var tok=await createToken();
+  tok=tok.toString();
+  console.log('Token '+tok)
+  // queryApp(tok)
+  // .then(filteredData => {
+  //     console.log('Datos filtrados obtenidos:', filteredData);
+  // })
+  // .catch(error => {
+  //     console.error('Error:', error);
+  // });
 
-    try{
-        
-        queryApp();
-        //nuevoCsv();
-        //res.send(createToken('97d7a7e8-786a-4491-9830-31032a2d0e19','4h0lHZ8D0ZMpEKWt-UMJ-vtMPZkS0DbRP5XVRJgle1g'))
-    }catch(e){
-        console.log('Error en Crear Campaña ='+e)
-    }
-    
+  
+// await newContactList(tok);
+
+textToJSON('hola');
 };
-
 
 export {
     crearCampaña
