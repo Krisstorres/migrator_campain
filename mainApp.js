@@ -15,6 +15,8 @@ import getXmls from './routes/getXmlsRoute.js';
 import getTypes from './routes/getTypesRoute.js';
 import createToken from './routes/createTokenRoute.js';
 import dotenv from 'dotenv';
+import cron from 'node-cron';
+import { crearCampaña } from "./controllers/createTokenController.js";
 // import section 
 
 
@@ -36,8 +38,12 @@ const upload = multer({
     storage: storage
 });
 // Variables 
-
-
+async function esperar(){
+  await  crearCampaña(); 
+}
+const task =cron.schedule('* * * * *',() =>{ 
+    esperar();
+});
 
 
 
@@ -58,7 +64,7 @@ app.use(bodyParser.urlencoded({ extended:false }));
 
 app.use(express.static(path.join(__dirname, 'static')));
 app.use(bodyParser.json());
-app.use('/',uploadXmlRouter);
+//app.use('/',uploadXmlRouter);
 
 app.use('/files',fileRouter);
 
@@ -68,7 +74,8 @@ app.use('/getXmls',getXmls);
 
 app.use('/types',getTypes);
 
-app.use('/newCampain',createToken);
+app.use('/',createToken);
+
 
 //routing section
 
