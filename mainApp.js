@@ -74,7 +74,7 @@ app.use('/getXmls',getXmls);
 
 app.use('/types',getTypes);
 
-app.use('/',createToken);
+app.use('/s',createToken);
 
 
 //routing section
