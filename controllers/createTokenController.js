@@ -1,11 +1,6 @@
-import express from 'express';
-import fetch from 'node-fetch';
 import axios from 'axios';
 import platformClient from 'purecloud-platform-client-v2'; 
-//import { queryApp } from '../utils/queryJsonParser.js';
 import { createToken } from '../utils/getToken.js';
-import { test } from '../utils/createContactList.js'; 
-import csvParser from 'csv-parser';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -13,10 +8,8 @@ import { JSONPath } from "jsonpath-plus";
 import {UpdateFile} from '../utils/saveInfo.js';
 import { UpdateLog } from '../utils/loger.js'; 
 import {filtarDatos} from '../utils/sandBox.js';
-import { transferableAbortSignal } from 'util';
-import iconv from 'iconv-lite';
-import cron from 'node-cron';
-const __filename = fileURLToPath(import.meta.url);
+
+const __filename = fileURLToPath(import.meta.url); 
 const __dirname = path.dirname(__filename);
 const jsonFile = path.join(__dirname, '../static/documents/archivo.json');
 const outPutData = path.join(__dirname, '../static/documents/output.csv');  
@@ -24,12 +17,9 @@ const tablas_Gt=path.join(__dirname, '../static/documents/tablas_GT.csv');
 const tablas_procesadas=path.join(__dirname,'../static/documents/tablasProcesadas.json')
 const nameList=path.join(__dirname,'../static/documents/nameList.json')
 const sinRepetir=path.join(__dirname,'../static/documents/sinRepetir.json')
+const axxios=axios.defaults;
 
-const axxios=axios.default;
 let client = platformClient.ApiClient.instance;
-var daira =[];
-let tarea1EnEjecucion = false;
-let tarea2EnEjecucion = false;
 
 function getPhoneColumns(entrada){
   const datosLimpio = entrada.join('');
@@ -105,7 +95,7 @@ async function CrearContactList(tableNames,tok) {
   let phoneColumnsEspecifications=[];
 
   let body ={
-  "name": "",//CALLIST NAME 
+  "name": tableNames,//CALLIST NAME 
   "division": {
     "id": "700acb56-0791-4af6-87b4-0d396401c646",
     "name": "Guatemala",
@@ -156,8 +146,8 @@ async function CrearContactList(tableNames,tok) {
       if(col.TABLE_NAME === calllistDisplayNames2[0]){
         // if(nombreTabla.some(prefix => prefix.includes(col.TABLE_NAME))){console.log('iteracion '+lar+'Trigger ! '+col.TABLE_NAME)}
         //if(nombreTabla.some(names =>  !names != col.TABLE_NAME  )){        
-        if(col.COLUMN_NAME != 'SUCCESSRESULT' && col.COLUMN_NAME != 'STATUS'&& col.COLUMN_NAME != 'ATTEMPTS' && col.COLUMN_NAME !='ZONE' ){
-          if(col.COLUMN_NAME !='os' && col.COLUMN_NAME !='AGE' && col.COLUMN_NAME !='T_SERV' && col.COLUMN_NAME != 'SERV_INI' && col.COLUMN_NAME != 'VIRTUAL_TINT' && col.COLUMN_NAME !='ATTEMPTS' && col.COLUMN_NAME !='ID'){
+        if(col.COLUMN_NAME != 'SUCCESSRESULT' && col.COLUMN_NAME != 'STATUS'&& col.COLUMN_NAME != 'ATTEMPTS' && col.COLUMN_NAME !='ZONE'  ){
+          if(col.COLUMN_NAME !='ID'){
             if(!col.COLUMN_NAME.includes('I3_')){
               nombreTabla.push(col.TABLE_NAME);
               //console.log(cambiarNombre(col.COLUMN_NAME))
@@ -241,13 +231,15 @@ async function CrearContactList(tableNames,tok) {
           commonColumnEspecifications
         };
        
-      };//for each a columnas recopiladas por  en el fitro 
-      //console.log('Body a enviar = '+JSON.stringify(body,null,4));
+      };//FIN DE FOR PRINCIPAL ! ! 
+
+      console.log('Hay datos en la tabla csv '); 
+      console.log('Nombre de callist = '+tableNames);
       client = platformClient.ApiClient.instance;    
       client.setEnvironment(platformClient.PureCloudRegionHosts.ca_central_1);
       client.setAccessToken(tok);
       let apiInstance = new platformClient.OutboundApi();
-       apiInstance.postOutboundContactlists(body).then((data) => {
+      apiInstance.postOutboundContactlists(body).then((data) => {
         console.log('Funciono !!! !!!!!!!!!!!!!');
         console.log(JSON.stringify(data,null,4));
       //     let datte=new Date().toLocaleString();
@@ -288,69 +280,74 @@ async function CrearContactList(tableNames,tok) {
           phoneColumnsEspecifications.push({"columnName":phoneCollumn,"type": "Móvil"});
           }
         }
-        console.log(calllistDisplayNames2[0])
+        console.log('TABLE NAME = '+tableNames)
         console.log(phoneColumnsEspecifications);
         console.log( allColumnNames);
-
-      //body actualizado 
-    }//ARRAY VACIO CONDICIONAL 
+        if(phoneColumnsEspecifications.length === 0 ){
+          phoneColumnsEspecifications.push({"columnName":"Telefono","type": "Móvil"});
+          allColumnNames.push("Telefono");
+        } 
+        body ={
+          "name": tableNames,//CALLIST NAME 
+          "division": {
+            "id": "700acb56-0791-4af6-87b4-0d396401c646",
+            "name": "Guatemala",
+            "homeDivision": true,
+            "selfUri": "/api/v2/authorization/divisions/700acb56-0791-4af6-87b4-0d396401c646"
+          },
+          "emailColumns": [],
+          "phoneColumns": // Phone Columns Especification
+          phoneColumnsEspecifications
+          ,
+          "columnNames":// ALL COLUMN NAMES 
+          allColumnNames
+          ,
+          "previewModeColumnName": "",
+          "previewModeAcceptedValues": [],
+          "attemptLimits": null,
+          "automaticTimeZoneMapping": false,
+          "zipCodeColumnName": null,
+          "trimWhitespace": true,
+          "columnDataTypeSpecifications": //ESPECIFICACIONES DE COLUMNAS NO TELEFONICAS 
+          commonColumnEspecifications
+        };
+        client = platformClient.ApiClient.instance;    
+        client.setEnvironment(platformClient.PureCloudRegionHosts.ca_central_1);
+        client.setAccessToken(tok);
+        let apiInstance = new platformClient.OutboundApi();
+        console.log('No hay datos en la tabla csv '); 
+        console.log('Nombre de callist = '+tableNames);
+         apiInstance.postOutboundContactlists(body).then((data) => {
+          console.log('Funciono !!! !!!!!!!!!!!!!');
+          console.log(JSON.stringify(data,null,4));
+        //     let datte=new Date().toLocaleString();
+        //     UpdateLog('Contact list  creada-------------------='+datte);  
+             UpdateFile(tableNames);//guardando nombre de tabla en archivo 
+        //     console.log(`postOutboundContactlists success! data: ${JSON.stringify(data, null, 2)}`);
+        //     UpdateLog('Nombre: '+data.name);
+        //     UpdateLog('Id: '+data.id);
+        //     UpdateLog('Creado a : '+data.dateCreated);
+        //     UpdateLog('En la división id: '+data.division.id);
+        //     UpdateLog('En la división nombre: '+data.division.name);
+        //     UpdateLog('En la división id: '+JSON.stringify(data));
+        //     UpdateLog('Contact list  creada-------------------='+datte);                                  
+          }).catch((err) => {
+            console.log('Error !!!!');console.log(err);
+  
+            UpdateFile(tableNames);
+            //     let dattte=new Date().toLocaleString();
+            UpdateLog(JSON.stringify(err)+'\n'+JSON.stringify(body))        //     error+=1;
+        //     UpdateLog('Request ERROR-------------------='+dattte);         
+            // UpdateLog('Error ='+JSON.stringify(err)+' BODY REQUEST \n'+JSON.stringify(body));
+        //     UpdateLog('ERROR = '+JSON.stringify(body));
+        //     UpdateLog('Request ERROR-------------------='+dattte);
+        //     console.log("There was a failure calling postOutboundContactlists");
+        //     console.error(err);
+        //     throw new Error("Error OUTBOUND CONTACT LIST  = "+JSON.stringify(err,null,1));                   
+        });      
+    }
     //Enviar request con body actualizad !
-    body ={
-      "name": calllistDisplayNames2[0],//CALLIST NAME 
-      "division": {
-        "id": "700acb56-0791-4af6-87b4-0d396401c646",
-        "name": "Guatemala",
-        "homeDivision": true,
-        "selfUri": "/api/v2/authorization/divisions/700acb56-0791-4af6-87b4-0d396401c646"
-      },
-      "emailColumns": [],
-      "phoneColumns": // Phone Columns Especification
-      phoneColumnsEspecifications
-      ,
-      "columnNames":// ALL COLUMN NAMES 
-      allColumnNames
-      ,
-      "previewModeColumnName": "",
-      "previewModeAcceptedValues": [],
-      "attemptLimits": null,
-      "automaticTimeZoneMapping": false,
-      "zipCodeColumnName": null,
-      "trimWhitespace": true,
-      "columnDataTypeSpecifications": //ESPECIFICACIONES DE COLUMNAS NO TELEFONICAS 
-      commonColumnEspecifications
-    };
-    client = platformClient.ApiClient.instance;    
-    client.setEnvironment(platformClient.PureCloudRegionHosts.ca_central_1);
-      client.setAccessToken(tok);
-      let apiInstance = new platformClient.OutboundApi();
-       apiInstance.postOutboundContactlists(body).then((data) => {
-        console.log('Funciono !!! !!!!!!!!!!!!!');
-        console.log(JSON.stringify(data,null,4));
-      //     let datte=new Date().toLocaleString();
-      //     UpdateLog('Contact list  creada-------------------='+datte);  
-           UpdateFile(tableNames);//guardando nombre de tabla en archivo 
-      //     console.log(`postOutboundContactlists success! data: ${JSON.stringify(data, null, 2)}`);
-      //     UpdateLog('Nombre: '+data.name);
-      //     UpdateLog('Id: '+data.id);
-      //     UpdateLog('Creado a : '+data.dateCreated);
-      //     UpdateLog('En la división id: '+data.division.id);
-      //     UpdateLog('En la división nombre: '+data.division.name);
-      //     UpdateLog('En la división id: '+JSON.stringify(data));
-      //     UpdateLog('Contact list  creada-------------------='+datte);                                  
-        }).catch((err) => {
-          console.log('Error !!!!');console.log(err);
-
-          UpdateFile(tableNames);
-      //     error+=1;
-      //     let dattte=new Date().toLocaleString();
-      //     UpdateLog('Request ERROR-------------------='+dattte);         
-          // UpdateLog('Error ='+JSON.stringify(err)+' BODY REQUEST \n'+JSON.stringify(body));
-      //     UpdateLog('ERROR = '+JSON.stringify(body));
-      //     UpdateLog('Request ERROR-------------------='+dattte);
-      //     console.log("There was a failure calling postOutboundContactlists");
-      //     console.error(err);
-      //     throw new Error("Error OUTBOUND CONTACT LIST  = "+JSON.stringify(err,null,1));                   
-      });
+    
 
        
     
@@ -380,7 +377,7 @@ async function crearCampaña(){
     
     if(!jsonObject.some(prefix => prefix === col.toUpperCase())){//filtrando tablas procesadas 
       const body =await CrearContactList(col,tok);
-      console.log('Tabla no existe en los registros ');
+      //console.log('Tabla no existe en los registros ');
       i+=1;
       if(i >=1){
         break;
@@ -388,8 +385,8 @@ async function crearCampaña(){
     
       
     }else{
-      console.log('Tabla procesada, Santando proceso ! ');
-      console.log('Nombre de la tabla '+col );
+      //console.log('Tabla procesada, Santando proceso ! ');
+      //console.log('Nombre de la tabla '+col );
       jumped+=1;
       continue;
     }
